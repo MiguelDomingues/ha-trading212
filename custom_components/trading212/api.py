@@ -46,13 +46,12 @@ class IntegrationBlueprintApiClientTooManyRequestsError(
         super().__init__(msg)
         self.wait_seconds = wait_seconds
 
+
 def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
     """Verify that the response is valid."""
     reset_header = response.headers.get("x-ratelimit-reset")
     reset_seconds = (
-        int(reset_header) - int(time.time())
-        if reset_header is not None
-        else "N/A"
+        int(reset_header) - int(time.time()) if reset_header is not None else "N/A"
     )
     LOGGER.debug(
         "Rate limit headers: Limit = %s, Period = %s, Remaining = %s, "
@@ -92,10 +91,11 @@ async def _check_wait_time(next_request_at: int) -> None:
     else:
         next_request_at = 0
 
+
 class Trading212ApiClient:
     """Sample API Client."""
 
-    next_request_at : int = 0
+    next_request_at: int = 0
 
     def __init__(
         self,
@@ -202,7 +202,6 @@ class Trading212ApiClient:
                 remaining = response.headers.get("x-ratelimit-remaining")
                 if remaining is not None and int(remaining) <= 1:
                     self.next_request_at = int(response.headers["x-ratelimit-reset"])
-
 
                 _verify_response_or_raise(response)
 

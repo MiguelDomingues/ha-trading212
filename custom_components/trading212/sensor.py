@@ -39,9 +39,11 @@ if TYPE_CHECKING:
 class Trading212SensorDescription(Trading212Description, SensorEntityDescription):
     """Describes a Trading 212 sensor entity."""
 
+
 def get_currency_code(entry: IntegrationBlueprintConfigEntry) -> str:
     """Get the currency code from the config entry, default to EUR."""
     return entry.data.get(CONF_T212_CURRENCY, "EUR")
+
 
 def get_none(entry: IntegrationBlueprintConfigEntry) -> str:  # noqa: ARG001
     """Return an empty string, used as a placeholder for unit of measurement."""
@@ -155,6 +157,7 @@ ENTITY_DESCRIPTIONS = (
     ),
 )
 
+
 @dataclass(frozen=True, kw_only=True)
 class Trading212TickerFieldDescription:
     """Describes a Trading 212 ticker field."""
@@ -166,6 +169,7 @@ class Trading212TickerFieldDescription:
     device_class: SensorDeviceClass | None
     precision: int | None
     icon: str
+
 
 TICKER_FIELDS = [
     Trading212TickerFieldDescription(
@@ -215,6 +219,7 @@ TICKER_FIELDS = [
     ),
 ]
 
+
 def ticker_get_field(
     coordinator: BlueprintDataUpdateCoordinator,
     ticker_name: str,
@@ -226,6 +231,7 @@ def ticker_get_field(
             return ticker[field]
 
     return None
+
 
 def get_value(
     api_field: str,
@@ -245,12 +251,13 @@ def get_instrument_name(instruments: list[dict[str, Any]], ticker_symbol: str) -
             return instrument.get("name", ticker_symbol)
     return ticker_symbol
 
+
 def generate_ticker_field_sensors(
     portfolio: list[dict[str, Any]],
     instruments: list[dict[str, Any]],
     field: Trading212TickerFieldDescription,
     coordinator: BlueprintDataUpdateCoordinator,
-    entry: IntegrationBlueprintConfigEntry
+    entry: IntegrationBlueprintConfigEntry,
 ) -> list[IntegrationBlueprintSensor]:
     """
     Generate sensor entities for each ticker in the portfolio for a specific field.
@@ -287,6 +294,7 @@ def generate_ticker_field_sensors(
         for ticker in portfolio
     ]
 
+
 def generate_ticker_sensors(
     portfolio: list[dict[str, Any]],
     instruments: list[dict[str, Any]],
@@ -319,6 +327,7 @@ def generate_ticker_sensors(
         )
     return sensors
 
+
 @dataclass(frozen=True, kw_only=True)
 class Trading212PieFieldDescription:
     """Describes a Trading 212 pie field."""
@@ -344,6 +353,7 @@ PIE_FIELDS = [
     ),
 ]
 
+
 def pie_get_field(
     coordinator: BlueprintDataUpdateCoordinator,
     ticker_name: str,
@@ -355,6 +365,7 @@ def pie_get_field(
             return pie[field]
 
     return None
+
 
 def generate_pie_field_sensors(
     pies: list[dict[str, Any]],
@@ -396,6 +407,7 @@ def generate_pie_field_sensors(
         for p in pies
     ]
 
+
 PIE_RESULT_FIELDS = [
     Trading212PieFieldDescription(
         pie_field="priceAvgInvestedValue",
@@ -434,6 +446,7 @@ PIE_RESULT_FIELDS = [
         icon="",
     ),
 ]
+
 
 def pie_get_result_field(
     coordinator: BlueprintDataUpdateCoordinator,
@@ -527,6 +540,7 @@ def generate_pies_sensors(
         )
     return sensors
 
+
 async def async_setup_entry(
     hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
     entry: IntegrationBlueprintConfigEntry,
@@ -567,8 +581,8 @@ async def async_setup_entry(
         )
     )
 
-
     async_add_entities(entities)
+
 
 class IntegrationBlueprintSensor(IntegrationBlueprintEntity, SensorEntity):
     """Representation of a Trading 212 sensor."""
