@@ -32,7 +32,6 @@ jobs:
           jq --arg ver "${{ steps.ha_version.outputs.ha_version }}" '.homeassistant = $ver' hacs.json > hacs.json.tmp && mv hacs.json.tmp hacs.json
 
       - name: Create Pull Request
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: peter-evans/create-pull-request@v7
         id: cpr
         with:
