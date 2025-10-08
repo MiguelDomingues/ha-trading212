@@ -59,12 +59,8 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
 
             portfolio = await api_client.async_get_portfolio()
 
-            if (
-                portfolio
-                and (
-                    self.data is None
-                    or CONF_T212_INSTRUMENTS not in self.data
-                )
+            if portfolio and (
+                self.data is None or CONF_T212_INSTRUMENTS not in self.data
             ):
                 instruments = await api_client.async_get_instruments()
                 # Filter instruments to only those whose ticker is in portfolio
@@ -82,11 +78,10 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
             inv_duration = time.time() - start_time
             self.update_interval = max(
                 timedelta(seconds=ceil(CONF_T212_INTERVAL_SECONDS - inv_duration)),
-                timedelta(seconds=1)
+                timedelta(seconds=1),
             )
             LOGGER.debug(
-                "Next update in %s seconds",
-                self.update_interval.total_seconds()
+                "Next update in %s seconds", self.update_interval.total_seconds()
             )
 
             return {
@@ -111,7 +106,7 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
                     CONF_T212_STATUS: "Error",
                     CONF_T212_INTERVAL: self.update_interval.total_seconds(),
                     CONF_T212_DURATION: None,
-                }
+                },
             }
         except IntegrationBlueprintApiClientAuthenticationError as exception:
             raise ConfigEntryAuthFailed(exception) from exception
@@ -125,7 +120,7 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
                     CONF_T212_STATUS: "Error",
                     CONF_T212_INTERVAL: self.update_interval.total_seconds(),
                     CONF_T212_DURATION: None,
-                }
+                },
             }
 
     async def cache_pie_names(
@@ -136,7 +131,6 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
             if pie["id"] not in self.pie_name:
                 pie_data = await api_client.async_get_pie(pie["id"])
                 self.pie_name[pie["id"]] = pie_data["settings"]["name"]
-
 
     def get_pie_name(self, pie_id: str) -> str:
         """Get the name of a pie by its ID."""

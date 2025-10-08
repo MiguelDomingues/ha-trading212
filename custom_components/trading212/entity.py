@@ -9,7 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTRIBUTION,
-        CONF_T212_ACCOUNT_NAME,
+    CONF_T212_ACCOUNT_NAME,
     ENTITY_PREFIX,
 )
 from .coordinator import BlueprintDataUpdateCoordinator
@@ -22,14 +22,11 @@ def get_unique_id(account: str, device_group: str, key: str) -> str:
     """Get the unique ID."""
     return f"{ENTITY_PREFIX}_{account}_{device_group}_{key}".lower().replace(" ", "_")
 
-def get_entity_id(
-    platform: Platform, account: str, device_group: str, key: str
-) -> str:
+
+def get_entity_id(platform: Platform, account: str, device_group: str, key: str) -> str:
     """Get the entity ID."""
-    return (
-        f"{platform}.{get_unique_id(account, device_group, key)}"
-        .lower()
-        .replace(" ", "_")
+    return f"{platform}.{get_unique_id(account, device_group, key)}".lower().replace(
+        " ", "_"
     )
 
 
@@ -52,12 +49,10 @@ class IntegrationBlueprintEntity(CoordinatorEntity[BlueprintDataUpdateCoordinato
             platform,
             coordinator.config_entry.data[CONF_T212_ACCOUNT_NAME],
             device_group,
-            context
+            context,
         )
         self._attr_unique_id = get_unique_id(
-            coordinator.config_entry.data[CONF_T212_ACCOUNT_NAME],
-            device_group,
-            context
+            coordinator.config_entry.data[CONF_T212_ACCOUNT_NAME], device_group, context
         )
         self._attr_device_info = DeviceInfo(
             identifiers={
