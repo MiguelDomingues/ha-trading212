@@ -1,4 +1,4 @@
-name: Validate
+name: Sync HA Version
 
 on:
   workflow_dispatch:
