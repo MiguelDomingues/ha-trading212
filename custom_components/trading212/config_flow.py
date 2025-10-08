@@ -73,9 +73,7 @@ class Trading212lowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_T212_ACCOUNT_ID: account_info["id"],
                         CONF_T212_CURRENCY: account_info.get("currencyCode"),
                     },
-                    options={
-
-                    },
+                    options={},
                 )
 
         return self.async_show_form(
