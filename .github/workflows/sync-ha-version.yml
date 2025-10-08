@@ -31,18 +31,14 @@ jobs:
         run: |
           jq --arg ver "${{ steps.ha_version.outputs.ha_version }}" '.homeassistant = $ver' hacs.json > hacs.json.tmp && mv hacs.json.tmp hacs.json
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        id: cpr
-        with:
-          commit-message: Update hacs.json Home Assistant version to ${{ steps.ha_version.outputs.ha_version }}
-          signoff: false
-          branch: pr-update-hacs-v${{ steps.ha_version.outputs.ha_version }}
-          delete-branch: false
-          title: Update tools v${{ steps.ha_version.outputs.ha_version }} docs
-          branch-suffix: short-commit-hash
-          body: |
-            Automatic update of hacs.json Home Assistant version to ${{ steps.ha_version.outputs.ha_version }}.
-          draft: false
-          add-paths:
-            hacs.json
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add hacs.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update hacs.json Home Assistant version to ${{ steps.ha_version.outputs.ha_version }}"
+            git push
+          fi
