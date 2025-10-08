@@ -1,0 +1,28 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "description": "If you need help with the configuration have a look here: https://github.com/MiguelDomingues/ha-trading212",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "account_name": "Account Name",
+                    "api_key_id": "API Key ID",
+                    "secret_key": "Secret Key",
+                    "account_id": "Account ID",
+                    "status": "Status",
+                    "info": "Info",
+                    "duration": "Duration"
+                }
+            }
+        },
+        "error": {
+            "auth": "Username/Password is wrong.",
+            "connection": "Unable to connect to the server.",
+            "unknown": "Unknown error occurred."
+        },
+        "abort": {
+            "already_configured": "This entry is already configured."
+        }
+    }
+}
