@@ -20,10 +20,14 @@ from custom_components.trading212.const import (
     CONF_T212_CASH,
     CONF_T212_CURRENCY,
     CONF_T212_INFO,
+    CONF_T212_INSTRUMENTS,
+    CONF_T212_PIES,
+    CONF_T212_PORTFOLIO,
+    CONF_T212_TICKERS,
 )
 from custom_components.trading212.entity_description import Trading212Description
 
-from .entity import IntegrationBlueprintEntity
+from .entity import IntegrationBlueprintEntity, get_instrument_name
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -185,7 +189,7 @@ TICKER_FIELDS = [
         ticker_field="averagePrice",
         name="Average Price",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=None,
         icon="mdi:cash-clock",
@@ -194,7 +198,7 @@ TICKER_FIELDS = [
         ticker_field="currentPrice",
         name="Current Price",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=None,
         icon="mdi:cash-marker",
@@ -203,7 +207,7 @@ TICKER_FIELDS = [
         ticker_field="ppl",
         name="Potential Profit/Loss",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=None,
         icon="mdi:cash-fast",
@@ -226,7 +230,7 @@ def ticker_get_field(
     field: str,
 ) -> Any:
     """Get the field of the ticker."""
-    for ticker in coordinator.data["portfolio"]:
+    for ticker in coordinator.data[CONF_T212_PORTFOLIO]:
         if ticker["ticker"] == ticker_name:
             return ticker[field]
 
@@ -242,14 +246,6 @@ def get_value(
     if api_field in coordinator.data:
         return coordinator.data[api_field].get(key)
     return None
-
-
-def get_instrument_name(instruments: list[dict[str, Any]], ticker_symbol: str) -> str:
-    """Get the instrument name for a given ticker symbol."""
-    for instrument in instruments:
-        if instrument.get("ticker") == ticker_symbol:
-            return instrument.get("name", ticker_symbol)
-    return ticker_symbol
 
 
 def generate_ticker_field_sensors(
@@ -279,7 +275,7 @@ def generate_ticker_field_sensors(
             entity_description=Trading212SensorDescription(
                 key=field.ticker_field,
                 name=f"{field.name}",
-                api_field="portfolio",
+                api_field=CONF_T212_PORTFOLIO,
                 state_class=field.state_class,
                 device_class=field.device_class,
                 native_unit_of_measurement=field.native_unit_of_measurement(entry),
@@ -292,10 +288,11 @@ def generate_ticker_field_sensors(
             ),
         )
         for ticker in portfolio
+        if ticker["ticker"] in entry.data.get(CONF_T212_TICKERS, [])
     ]
 
 
-def generate_ticker_sensors(
+def generate_portfolio_ticker_sensors(
     portfolio: list[dict[str, Any]],
     instruments: list[dict[str, Any]],
     coordinator: BlueprintDataUpdateCoordinator,
@@ -346,7 +343,7 @@ PIE_FIELDS = [
         pie_field="cash",
         name="Cash",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=None,
         icon="",
@@ -360,7 +357,7 @@ def pie_get_field(
     field: str,
 ) -> Any:
     """Get the field of the pie."""
-    for pie in coordinator.data["pies"]:
+    for pie in coordinator.data[CONF_T212_PIES]:
         if pie["id"] == ticker_name:
             return pie[field]
 
@@ -392,7 +389,7 @@ def generate_pie_field_sensors(
             entity_description=Trading212SensorDescription(
                 key=field.pie_field,
                 name=f"{field.name}",
-                api_field="pies",
+                api_field=CONF_T212_PIES,
                 state_class=field.state_class,
                 device_class=field.device_class,
                 native_unit_of_measurement=field.native_unit_of_measurement(entry),
@@ -405,6 +402,10 @@ def generate_pie_field_sensors(
             ),
         )
         for p in pies
+        if (
+            entry.data.get(CONF_T212_PIES) is not None
+            and entry.data[CONF_T212_PIES].count(f"{p['id']}") > 0
+        )
     ]
 
 
@@ -413,7 +414,7 @@ PIE_RESULT_FIELDS = [
         pie_field="priceAvgInvestedValue",
         name="Invested Value",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=4,
         icon="",
@@ -422,7 +423,7 @@ PIE_RESULT_FIELDS = [
         pie_field="priceAvgValue",
         name="Value",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=4,
         icon="",
@@ -431,7 +432,7 @@ PIE_RESULT_FIELDS = [
         pie_field="priceAvgResult",
         name="Result",
         native_unit_of_measurement=get_currency_code,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         device_class=SensorDeviceClass.MONETARY,
         precision=4,
         icon="",
@@ -454,7 +455,7 @@ def pie_get_result_field(
     field: str,
 ) -> Any:
     """Get the field of the pie."""
-    for pie in coordinator.data["pies"]:
+    for pie in coordinator.data[CONF_T212_PIES]:
         if pie["id"] == ticker_name:
             return pie["result"][field]
 
@@ -486,7 +487,7 @@ def generate_pie_result_sensors(
             entity_description=Trading212SensorDescription(
                 key=field.pie_field,
                 name=f"{field.name}",
-                api_field="pies",
+                api_field=CONF_T212_PIES,
                 state_class=field.state_class,
                 device_class=field.device_class,
                 native_unit_of_measurement=field.native_unit_of_measurement(entry),
@@ -499,6 +500,10 @@ def generate_pie_result_sensors(
             ),
         )
         for p in pies
+        if (
+            entry.data.get(CONF_T212_PIES) is not None
+            and entry.data[CONF_T212_PIES].count(f"{p['id']}") > 0
+        )
     ]
 
 
@@ -565,9 +570,9 @@ async def async_setup_entry(
     )
 
     entities.extend(
-        generate_ticker_sensors(
-            entry.runtime_data.coordinator.data["portfolio"],
-            entry.runtime_data.coordinator.data["instruments"],
+        generate_portfolio_ticker_sensors(
+            entry.runtime_data.coordinator.data.get(CONF_T212_PORTFOLIO, []),
+            entry.runtime_data.coordinator.data.get(CONF_T212_INSTRUMENTS, []),
             coordinator=entry.runtime_data.coordinator,
             entry=entry,
         )
@@ -575,7 +580,7 @@ async def async_setup_entry(
 
     entities.extend(
         generate_pies_sensors(
-            entry.runtime_data.coordinator.data["pies"],
+            entry.runtime_data.coordinator.data.get(CONF_T212_PIES, []),
             entry.runtime_data.coordinator,
             entry=entry,
         )

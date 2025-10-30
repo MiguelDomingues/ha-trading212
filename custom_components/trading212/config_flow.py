@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from slugify import slugify
+
+from custom_components.trading212.entity import get_instrument_name, get_pie_name
 
 from .api import (
     IntegrationBlueprintApiClientAuthenticationError,
@@ -19,16 +22,21 @@ from .const import (
     CONF_T212_ACCOUNT_NAME,
     CONF_T212_API_KEY_ID,
     CONF_T212_CURRENCY,
+    CONF_T212_PIES,
     CONF_T212_SECRET_KEY,
+    CONF_T212_SELECTED_PIES,
+    CONF_T212_SELECTED_TICKERS,
+    CONF_T212_TICKERS,
     DOMAIN,
     LOGGER,
 )
 
 
-class Trading212lowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class Trading212FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Blueprint."""
 
-    VERSION = 1
+    data: dict[str, Any] = {}
+    api_client: Trading212ApiClient
 
     async def async_step_user(
         self,
@@ -38,13 +46,13 @@ class Trading212lowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _errors = {}
         if user_input is not None:
             try:
-                api_client = Trading212ApiClient(
+                self.api_client = Trading212ApiClient(
                     api_key_id=user_input[CONF_T212_API_KEY_ID],
                     secret_key=user_input[CONF_T212_SECRET_KEY],
                     session=async_create_clientsession(self.hass),
                 )
                 LOGGER.debug("Testing Trading 212 credentials...")
-                account_info = await api_client.async_get_account_info()
+                account_info = await self.api_client.async_get_account_info()
                 LOGGER.debug("Account info: %s", account_info)
             except IntegrationBlueprintApiClientAuthenticationError as exception:
                 LOGGER.warning(exception)
@@ -56,25 +64,17 @@ class Trading212lowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 LOGGER.exception(exception)
                 _errors["base"] = "unknown"
             else:
-                LOGGER.debug("Account name: %s", user_input[CONF_T212_ACCOUNT_NAME])
-                await self.async_set_unique_id(
-                    ## Do NOT use this in production code
-                    ## The unique_id should never be something that can change
-                    ## https://developers.home-assistant.io/docs/config_entries_config_flow_handler#unique-ids
-                    unique_id=slugify(user_input[CONF_T212_ACCOUNT_NAME])
-                )
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=user_input[CONF_T212_ACCOUNT_NAME],
-                    data={
-                        CONF_T212_ACCOUNT_NAME: user_input[CONF_T212_ACCOUNT_NAME],
-                        CONF_T212_API_KEY_ID: user_input[CONF_T212_API_KEY_ID],
-                        CONF_T212_SECRET_KEY: user_input[CONF_T212_SECRET_KEY],
-                        CONF_T212_ACCOUNT_ID: account_info["id"],
-                        CONF_T212_CURRENCY: account_info.get("currencyCode"),
-                    },
-                    options={},
-                )
+                # Store data and move to step 2
+                self.data = {
+                    CONF_T212_ACCOUNT_NAME: user_input[CONF_T212_ACCOUNT_NAME],
+                    CONF_T212_API_KEY_ID: user_input[CONF_T212_API_KEY_ID],
+                    CONF_T212_SECRET_KEY: user_input[CONF_T212_SECRET_KEY],
+                    CONF_T212_ACCOUNT_ID: account_info["id"],
+                    CONF_T212_CURRENCY: account_info.get("currencyCode"),
+                    CONF_T212_TICKERS: [],
+                    CONF_T212_PIES: [],
+                }
+                return await self.async_step_tickers()
 
         return self.async_show_form(
             step_id="user",
@@ -103,4 +103,95 @@ class Trading212lowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 },
             ),
             errors=_errors,
+        )
+
+    async def async_step_pies(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the second step for additional options."""
+        if user_input is not None:
+            self.data[CONF_T212_PIES] = user_input.get(CONF_T212_SELECTED_PIES)
+            return self.async_create_entry(
+                title=self.data[CONF_T212_ACCOUNT_NAME],
+                data=self.data,
+                options={},
+            )
+
+        pies = await self.api_client.async_get_pies()
+
+        # Create checkbox-like options for each pie
+        pie_options = [
+            selector.SelectOptionDict(
+                value=f"{pie['id']}",
+                label=f"{await get_pie_name(self.api_client, pie['id'])}",
+            )
+            for pie in pies
+        ]
+
+        # Get pies that should be selected by default
+        default_selected = [f"{pie['id']}" for pie in pies]
+
+        return self.async_show_form(
+            step_id=CONF_T212_PIES,
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_T212_SELECTED_PIES, default=default_selected
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=pie_options,
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                            sort=True,
+                        ),
+                    ),
+                },
+            ),
+        )
+
+    async def async_step_tickers(
+        self,
+        user_input: dict | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the second step for additional options."""
+        if user_input is not None:
+            self.data[CONF_T212_TICKERS] = user_input.get(
+                CONF_T212_SELECTED_TICKERS, []
+            )
+            return await self.async_step_pies()
+
+        if len(self.data[CONF_T212_TICKERS]) == 0:
+            portfolio = await self.api_client.async_get_portfolio()
+            self.data[CONF_T212_TICKERS] = [item["ticker"] for item in portfolio]
+
+        instruments = await self.api_client.async_get_instruments()
+
+        # Create checkbox-like options for each ticker
+        ticker_options = [
+            selector.SelectOptionDict(
+                value=ticker,
+                label=f"{get_instrument_name(instruments, ticker)} ({ticker})",
+            )
+            for ticker in self.data[CONF_T212_TICKERS]
+        ]
+
+        # Get tickers that should be selected by default
+        default_selected = list(self.data[CONF_T212_TICKERS])
+
+        return self.async_show_form(
+            step_id=CONF_T212_TICKERS,
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_T212_SELECTED_TICKERS, default=default_selected
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=ticker_options,
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                        ),
+                    ),
+                },
+            ),
         )

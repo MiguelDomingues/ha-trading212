@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -29,6 +29,28 @@ def get_entity_id(platform: Platform, account: str, device_group: str, key: str)
         " ", "_"
     )
 
+def get_instrument_name(instruments: list[dict[str, Any]], ticker_symbol: str) -> str:
+    """Get the instrument name for a given ticker symbol."""
+    for instrument in instruments:
+        if instrument.get("ticker") == ticker_symbol:
+            return instrument.get("name", ticker_symbol)
+    return ticker_symbol
+
+
+async def get_pie_name(api_client: Any, pie_id: str) -> str:
+    """
+    Get the name of a pie given its ID using the provided API client.
+
+    Args:
+        api_client (Any): The API client to fetch pie data.
+        pie_id (str): The ID of the pie.
+
+    Returns:
+        str: The name of the pie.
+
+    """
+    pie_data = await api_client.async_get_pie(pie_id)
+    return pie_data["settings"]["name"]
 
 class IntegrationBlueprintEntity(CoordinatorEntity[BlueprintDataUpdateCoordinator]):
     """BlueprintEntity class."""

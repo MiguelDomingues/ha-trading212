@@ -20,6 +20,7 @@ from custom_components.trading212.const import (
     CONF_T212_PIES,
     CONF_T212_PORTFOLIO,
     CONF_T212_STATUS,
+    CONF_T212_TICKERS,
     LOGGER,
 )
 
@@ -57,7 +58,10 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
 
             cash = await api_client.async_get_account_cash()
 
-            portfolio = await api_client.async_get_portfolio()
+            if len(self.config_entry.data.get(CONF_T212_TICKERS, [])) > 0:
+                portfolio = await api_client.async_get_portfolio()
+            else:
+                portfolio = []
 
             if portfolio and (
                 self.data is None or CONF_T212_INSTRUMENTS not in self.data
@@ -69,11 +73,17 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
                     inst for inst in instruments if inst["ticker"] in portfolio_tickers
                 ]
             else:
-                instruments = self.data[CONF_T212_INSTRUMENTS]
+                instruments = (
+                    self.data[CONF_T212_INSTRUMENTS]
+                    if self.data and CONF_T212_INSTRUMENTS in self.data
+                    else []
+                )
 
-            pies = await api_client.async_get_pies()
-
-            await self.cache_pie_names(api_client, pies)
+            if len(self.config_entry.data.get(CONF_T212_PIES, [])) > 0:
+                pies = await api_client.async_get_pies()
+                await self.cache_pie_names(api_client, pies)
+            else:
+                pies = []
 
             inv_duration = time.time() - start_time
             self.update_interval = max(
@@ -89,7 +99,6 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
                 CONF_T212_PORTFOLIO: portfolio,
                 CONF_T212_INSTRUMENTS: instruments,
                 CONF_T212_PIES: pies,
-                # CONF_T212_ORDERS: orders,
                 CONF_T212_API: {
                     CONF_T212_STATUS: (
                         "OK" if not too_many_requests else "Too Many Requests"
@@ -128,7 +137,11 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Cache the names of the pies."""
         for pie in pies:
-            if pie["id"] not in self.pie_name:
+            if pie[
+                "id"
+            ] not in self.pie_name and f"{pie['id']}" in self.config_entry.data.get(
+                CONF_T212_PIES, []
+            ):
                 pie_data = await api_client.async_get_pie(pie["id"])
                 self.pie_name[pie["id"]] = pie_data["settings"]["name"]
 

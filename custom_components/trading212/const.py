@@ -13,6 +13,10 @@ CONF_T212_ACCOUNT_ID = "account_id"
 CONF_T212_CURRENCY = "currency"
 CONF_T212_SECRET_KEY = "secret_key"  # noqa: S105
 CONF_T212_INTERVAL_SECONDS = 60
+CONF_T212_TICKERS = "tickers"
+CONF_T212_SELECTED_TICKERS = "selected_tickers"
+CONF_T212_PIES = "pies"
+CONF_T212_SELECTED_PIES = "selected_pies"
 
 CONF_T212_INFO = "info"
 CONF_T212_CASH = "cash"

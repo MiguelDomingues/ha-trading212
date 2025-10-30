@@ -1,28 +1,43 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "description": "If you need help with the configuration have a look here: https://github.com/MiguelDomingues/ha-trading212",
-                "data": {
-                    "username": "Username",
-                    "password": "Password",
-                    "account_name": "Account Name",
-                    "api_key_id": "API Key ID",
-                    "secret_key": "Secret Key",
-                    "account_id": "Account ID",
-                    "status": "Status",
-                    "info": "Info",
-                    "duration": "Duration"
-                }
-            }
-        },
-        "error": {
-            "auth": "Username/Password is wrong.",
-            "connection": "Unable to connect to the server.",
-            "unknown": "Unknown error occurred."
-        },
-        "abort": {
-            "already_configured": "This entry is already configured."
+  "config": {
+    "step": {
+      "user": {
+        "description": "To obtain the necessary credentials access https://app.trading212.com/ using a web browser. In the account settings, under API (Beta), generate a new API Key ID and Secret Key. When generating the API Key, select the following permissions:\n* Account Data\n* Metadata\n* Orders - Read\n* Pies - Read\n* Portfolio\n\n**DO NOT SELECT ANY OF THE _Write_ or _Execute_ PERMISSIONS! USE AT YOUR OWN RISK.**\n\n**NOTE:** Trading 212 API has a low request rate limit, which means that the setup process will take some time. Be patient when moving between steps.",
+        "data": {
+          "account_name": "Account Name",
+          "api_key_id": "API Key ID",
+          "secret_key": "Secret Key",
+          "account_id": "Account ID",
+          "status": "Status",
+          "info": "Info",
+          "duration": "Duration"
         }
+      },
+      "tickers": {
+        "description": "Select the tickers you want to monitor.",
+        "data": {
+          "tickers": "Tickers",
+          "selected_tickers": "Selected Tickers"
+        }
+      },
+      "pies": {
+        "description": "Select the pies you want to monitor.",
+        "data": {
+          "pies": "Pies",
+          "selected_pies": "Selected Pies"
+        }
+      },
+      "finish": {
+        "description": "Configuration is almost done. Click submit to finish the setup."
+      }
+    },
+    "error": {
+      "auth": "Invalid API credentials.",
+      "connection": "Unable to connect to the server.",
+      "unknown": "Unknown error occurred."
+    },
+    "abort": {
+      "already_configured": "This entry is already configured."
     }
+  }
 }
